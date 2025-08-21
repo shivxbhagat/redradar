@@ -32,7 +32,7 @@ WEBHOOK = os.getenv("DISCORD_WEBHOOK_URL", "").strip()
 INDICES = os.getenv("INDICES", "NDX").upper()
 THRESHOLD = float(os.getenv("THRESHOLD", "-4"))
 INTRADAY_1D = os.getenv("INTRADAY_1D", "true").lower() == "true"
-PREPOST = os.getenv("PREPOST", "false").lower() == "true"
+PREPOST = os.getenv("PREPOST", "true").lower() == "true"
 TIMEFRAMES = [s.strip() for s in os.getenv("TIMEFRAMES", "1d,5d,1mo,3mo,6mo,1y,5y").split(",") if s.strip()]
 LIMIT_TICKERS = int(os.getenv("LIMIT_TICKERS", "0"))
 BATCH_SIZE = int(os.getenv("BATCH_SIZE", "80"))
@@ -239,6 +239,53 @@ def post_to_discord(content_parts: List[str]):
             print(f"[ERROR] Discord {r.status_code}: {r.text}")
         time.sleep(0.35)
 
+# ---------- Terminal logging (pretty print) ----------
+def format_results_for_log(
+    results: Dict[str, Dict[str, Tuple[float, float]]],
+    threshold: float,
+    include_all: bool = False,
+    ansi: bool = True,
+) -> str:
+    """
+    Build a terminal-friendly block similar to the Discord post.
+    - include_all=False  -> only timeframes that breach the threshold
+    - include_all=True   -> show all available timeframes for each ticker
+    - ansi=True          -> bold tickers in terminal using ANSI escape codes
+    """
+    now_ct = datetime.now(tz=ZoneInfo("America/Winnipeg"))
+    date_str = f"{now_ct.strftime('%b')} {now_ct.day}, {now_ct.year} {now_ct.strftime('%H:%M %Z')}"
+
+    bold_on = "\033[1m" if ansi else ""
+    bold_off = "\033[0m" if ansi else ""
+
+    lines = [
+        f"RedRadar log ~ {date_str}",
+        f"Indices={INDICES} | Threshold<= {threshold:.1f}% | Intraday_1d={INTRADAY_1D} | PrePost={PREPOST}",
+        "=================================",
+    ]
+
+    triggered = 0
+    for t in sorted(results.keys()):
+        entries = []
+        for tf in TIMEFRAMES:
+            if tf in results[t]:
+                pct, delta = results[t][tf]
+                if include_all or pct <= threshold:
+                    entries.append(f"{tf} {pct:.1f}% {fmt_money(delta)}")
+        if entries:
+            triggered += 1
+            lines.append(f"{bold_on}{t}{bold_off}")
+            for i, e in enumerate(entries):
+                trailing = "," if i < len(entries) - 1 else ""
+                lines.append(f"{e}{trailing}")
+            lines.append("")  # blank line between tickers
+
+    if triggered == 0:
+        lines.append("No tickers breached the threshold.")
+
+    return "\n".join(lines)
+
+
 # ------------------- Main ------------------
 def main():
     tickers = fetch_index_tickers()
@@ -260,10 +307,11 @@ def main():
     title = f"{ix_name} drop alerts (<= {THRESHOLD:.1f}%)"
     parts = chunk_for_discord(title, blocks)
     post_to_discord(parts)
+
     print(f"[INFO] Posted {len(parts)} message part(s).")
     print("============================================\n")
     print("Results:\n")
-    print(results)
+    print(format_results_for_log(results, THRESHOLD, include_all=False, ansi=True))
     print("\n============================================\n")
 
 
