@@ -261,6 +261,12 @@ def main():
     parts = chunk_for_discord(title, blocks)
     post_to_discord(parts)
     print(f"[INFO] Posted {len(parts)} message part(s).")
+    print("============================================\n")
+    print("Results:\n")
+    print(results)
+    print("\n============================================\n")
+
+
 
 if __name__ == "__main__":
     main()
