@@ -68,8 +68,8 @@ def load_ndx() -> List[str]:
         col = 2 if raw.shape[1] >= 3 else 0
         tickers = clean_symbols(raw.iloc[:, col])
 
-    #return sorted(set(tickers))
-    return set(tickers)
+    return sorted(set(tickers))
+    #return set(tickers)
 
 def load_spx() -> List[str]:
     url = "https://www.ssga.com/library-content/products/fund-data/etfs/us/holdings-daily-us-en-spy.xlsx"
@@ -99,14 +99,14 @@ def load_spx() -> List[str]:
 
     tickers = clean_symbols(df[tcol])
     tickers = [t for t in tickers if "CASH" not in t and "USD" not in t]
-    # return sorted(set(tickers))
-    return set(tickers)
+    return sorted(set(tickers))
+    #return set(tickers)
 
 def fetch_index_tickers() -> List[str]:
     tickers: List[str] = []
     if INDICES in ("NDX", "BOTH"): tickers += load_ndx()
     if INDICES in ("SPX", "BOTH"): tickers += load_spx()
-    # tickers = sorted(set(tickers))
+    tickers = sorted(set(tickers))
     if LIMIT_TICKERS > 0:
         tickers = tickers[:LIMIT_TICKERS]
     return tickers
@@ -182,8 +182,8 @@ def build_blocks(results: Dict[str, Dict[str, Tuple[float, float]]], threshold: 
     5y -13.6% (-$19.75)
     """
     blocks: List[str] = []
-    #for t in sorted(results.keys()):
-    for t in results.keys():
+    for t in sorted(results.keys()):
+    #for t in results.keys():
         entries = []
         for tf in TIMEFRAMES: 
             if tf in results[t]:
@@ -269,8 +269,8 @@ def format_results_for_log(
 
     triggered = 0
 
-    #for t in sorted(results.keys()):
-    for t in results.keys():
+    for t in sorted(results.keys()):
+    #for t in results.keys():
         entries = []
         for tf in TIMEFRAMES:
             if tf in results[t]:
